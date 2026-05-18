@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Driftsstatus – IKT-Portalen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📡 Driftsstatus</h1>
+  <p>Her finner du oversikt over driftsstatus for bedriftens IT-systemer.
+     Siden oppdateres manuelt av IT-avdelingen.</p>
+</div>
+
+<div class="status-table-wrap">
+  <table class="status-table">
+    <thead>
+      <tr>
+        <th>Tjeneste</th>
+        <th>Status</th>
+        <th>Melding</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in services %}
+      <tr>
+        <td>{{ s.navn }}</td>
+        <td>
+          {% if s.status == 'ok' %}
+            <span class="badge badge-ok">✔ OK</span>
+          {% elif s.status == 'advarsel' %}
+            <span class="badge badge-warn">⚠ Advarsel</span>
+          {% else %}
+            <span class="badge badge-error">✖ Feil</span>
+          {% endif %}
+        </td>
+        <td>{{ s.melding }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="status-footer">Har du et problem som ikke vises her?
+  <a href="{{ url_for('ticket') }}">Meld inn en support-ticket</a>.
+</p>
+{% endblock %}
