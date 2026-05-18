@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Support-ticket – IKT-Portalen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🎫 Meld inn IT-problem</h1>
+  <p>Fyll ut skjemaet nedenfor. Vi behandler henvendelsen din så raskt vi kan.</p>
+</div>
+
+<div class="form-card">
+  <form method="POST" action="{{ url_for('ticket') }}" novalidate>
+
+    <div class="form-group{% if errors.navn %} has-error{% endif %}">
+      <label for="navn">Fullt navn <span class="required">*</span></label>
+      <input type="text" id="navn" name="navn"
+             placeholder="Ola Nordmann"
+             value="{{ request.form.get('navn', '') }}"
+             maxlength="150" />
+      {% if errors.navn %}<p class="error-msg">{{ errors.navn }}</p>{% endif %}
+    </div>
+
+    <div class="form-group{% if errors.epost %} has-error{% endif %}">
+      <label for="epost">E-postadresse <span class="required">*</span></label>
+      <input type="email" id="epost" name="epost"
+             placeholder="ola@bedriften.no"
+             value="{{ request.form.get('epost', '') }}"
+             maxlength="200" />
+      {% if errors.epost %}<p class="error-msg">{{ errors.epost }}</p>{% endif %}
+    </div>
+
+    <div class="form-group{% if errors.problem %} has-error{% endif %}">
+      <label for="problem">Beskriv problemet <span class="required">*</span></label>
+      <textarea id="problem" name="problem" rows="6"
+                placeholder="Beskriv hva som skjer, når det startet og hvilken enhet/program det gjelder..."
+                maxlength="2000">{{ request.form.get('problem', '') }}</textarea>
+      {% if errors.problem %}<p class="error-msg">{{ errors.problem }}</p>{% endif %}
+    </div>
+
+    <div class="form-group form-group-check{% if errors.samtykke %} has-error{% endif %}">
+      <label class="check-label">
+        <input type="checkbox" name="samtykke" value="1"
+               {% if request.form.get('samtykke') %}checked{% endif %} />
+        <span>Jeg godtar at mine opplysninger (navn, e-post og problembeskrivelse) lagres
+              for å løse saken. Opplysningene slettes etter at saken er avsluttet.</span>
+      </label>
+      {% if errors.samtykke %}<p class="error-msg">{{ errors.samtykke }}</p>{% endif %}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary btn-large">Send inn ticket</button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

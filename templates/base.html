@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}IKT-Portalen{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="logo">
+        <span class="logo-icon">🖥️</span>
+        <span class="logo-text">IKT-Portalen</span>
+      </div>
+      <nav class="main-nav">
+        <a href="{{ url_for('index') }}"{% if request.endpoint == 'index' %} class="active"{% endif %}>Hjem</a>
+        <a href="{{ url_for('ticket') }}"{% if request.endpoint == 'ticket' %} class="active"{% endif %}>Support-ticket</a>
+        <a href="{{ url_for('brukerveiledninger') }}"{% if request.endpoint == 'brukerveiledninger' %} class="active"{% endif %}>Brukerveiledninger</a>
+        <a href="{{ url_for('driftsstatus') }}"{% if request.endpoint == 'driftsstatus' %} class="active"{% endif %}>Driftsstatus</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-main">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© {{ now.year }} IKT-Avdelingen &mdash; Intern bruk</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Hjem – IKT-Portalen{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Velkommen til IKT-Portalen</h1>
+  <p class="hero-sub">Din interne IT-ressurs for support, veiledninger og driftsstatus.</p>
+</section>
+
+<section class="cards">
+  <a class="card" href="{{ url_for('ticket') }}">
+    <div class="card-icon">🎫</div>
+    <h2>Meld inn IT-problem</h2>
+    <p>Har du et teknisk problem? Fyll ut et support-skjema og vi hjelper deg så fort som mulig.</p>
+    <span class="btn btn-primary">Opprett ticket</span>
+  </a>
+
+  <a class="card" href="{{ url_for('brukerveiledninger') }}">
+    <div class="card-icon">📖</div>
+    <h2>Brukerveiledninger</h2>
+    <p>Les steg-for-steg-guider for vanlige IT-problemer og løsninger.</p>
+    <span class="btn btn-secondary">Se veiledninger</span>
+  </a>
+
+  <a class="card" href="{{ url_for('driftsstatus') }}">
+    <div class="card-icon">📡</div>
+    <h2>Driftsstatus</h2>
+    <p>Sjekk om det er kjente driftsproblemer eller planlagt vedlikehold på systemer.</p>
+    <span class="btn btn-secondary">Se status</span>
+  </a>
+</section>
+
+<section class="info-banner">
+  <h3>Åpningstider – IT-support</h3>
+  <ul>
+    <li>Mandag–fredag: kl. 08:00–16:00</li>
+    <li>Telefon: <strong>555 12 345</strong></li>
+    <li>E-post: <strong>ikt-support@bedriften.no</strong></li>
+  </ul>
+</section>
+{% endblock %}

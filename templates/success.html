@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Sak registrert – IKT-Portalen{% endblock %}
+
+{% block content %}
+<div class="success-box">
+  <div class="success-icon">✅</div>
+  <h1>Sak registrert!</h1>
+  <p>Takk for at du tok kontakt. IT-avdelingen har mottatt henvendelsen din og vil svare
+     deg på e-post så snart som mulig.</p>
+  <p>Normale svartider: <strong>innen 1 arbeidsdag</strong>.</p>
+  <a href="{{ url_for('index') }}" class="btn btn-primary">Tilbake til forsiden</a>
+</div>
+{% endblock %}
