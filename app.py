@@ -10,8 +10,9 @@ from flask import Flask, render_template, request, redirect, url_for, g, session
 app = Flask(__name__)
 
 DATABASE = os.path.join(os.path.dirname(__file__), "ikt_portal.db")
-app.secret_key = os.environ.get("SECRET_KEY", "yo-im-secret")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+# Load sensitive values from environment only (no hard-coded defaults)
+app.secret_key = os.environ.get("SECRET_KEY", "")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 
 # ---------------------------------------------------------------------------

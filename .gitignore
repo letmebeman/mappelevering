@@ -24,3 +24,34 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Logs
+*.log
+logs/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Type checking
+.mypy_cache/
+
+# Environment files and secrets
+.env*
+.env.*
+.env.local
+.envrc
+secrets.yml
+*.pem
+*.key
+
+# Misc
+npm-debug.log
