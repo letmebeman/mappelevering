@@ -170,6 +170,15 @@ def tickets():
     return render_template("tickets.html", tickets=rows)
 
 
+@app.route("/tickets/delete/<int:ticket_id>", methods=["POST"])
+@admin_required
+def delete_ticket(ticket_id):
+    db = get_db()
+    db.execute("DELETE FROM tickets WHERE id = ?", (ticket_id,))
+    db.commit()
+    return redirect(url_for("tickets"))
+
+
 @app.route("/success")
 def success():
     return render_template("success.html")

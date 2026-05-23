@@ -22,6 +22,7 @@
         <th>Problem</th>
         <th>Samtykke</th>
         <th>Opprettet</th>
+        <th>Handling</th>
       </tr>
     </thead>
     <tbody>
@@ -33,6 +34,11 @@
         <td>{{ ticket.problem }}</td>
         <td>{% if ticket.samtykke %}Ja{% else %}Nei{% endif %}</td>
         <td>{{ ticket.opprettet }}</td>
+        <td>
+          <form method="post" action="{{ url_for('delete_ticket', ticket_id=ticket.id) }}" onsubmit="return confirm('Slett denne ticketen?');">
+            <button type="submit" class="btn btn-link">Slett</button>
+          </form>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
