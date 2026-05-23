@@ -98,3 +98,19 @@ mappelevering/
 - `DRIFTSSTATUS_TEAMS_URL`
 
 Hvis en verdi ikke er satt, brukes den innebygde fallback-statusen i stedet.
+
+## Deployment secrets
+
+Before you make the repository public, ensure you do NOT commit any secret or runtime files.
+
+- Copy `.env.example` to `.env` on the target server and fill in real values (do not commit `.env`).
+- The app reads `SECRET_KEY` and `ADMIN_PASSWORD` from environment variables (or from a local `.env` used by the service). `.env` is listed in `.gitignore`.
+- If you accidentally committed secrets, rotate them immediately and remove them from git history (use BFG or `git filter-repo`).
+
+Example (on the server):
+
+```bash
+cp .env.example .env
+# edit .env, then restrict permissions
+chmod 600 .env
+```
