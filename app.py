@@ -10,7 +10,7 @@ from flask import Flask, render_template, request, redirect, url_for, g, session
 app = Flask(__name__)
 
 DATABASE = os.path.join(os.path.dirname(__file__), "ikt_portal.db")
-# Load sensitive values from environment only (no hard-coded defaults)
+# Keep secrets out of the source tree; production injects these from .env/systemd.
 app.secret_key = os.environ.get("SECRET_KEY", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
@@ -25,6 +25,7 @@ def inject_now():
 
 
 def admin_required(view):
+    # Protect admin-only pages with a simple session flag set at login.
     @wraps(view)
     def wrapped_view(*args, **kwargs):
         if not session.get("is_admin"):
@@ -37,6 +38,7 @@ def admin_required(view):
 def is_safe_redirect_target(target):
     if not target:
         return False
+    # Prevent open-redirects by only allowing URLs on this same host.
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in {"http", "https"} and test_url.netloc == urlparse(request.host_url).netloc
 
@@ -77,6 +79,7 @@ def close_connection(exception):
 
 
 def init_db():
+    # Create the ticket table on first run; this is idempotent for deployment.
     db = sqlite3.connect(DATABASE)
     db.execute(
         """
@@ -173,6 +176,7 @@ def tickets():
 @app.route("/tickets/delete/<int:ticket_id>", methods=["POST"])
 @admin_required
 def delete_ticket(ticket_id):
+    # Admin-only hard delete for support tickets.
     db = get_db()
     db.execute("DELETE FROM tickets WHERE id = ?", (ticket_id,))
     db.commit()
@@ -191,6 +195,7 @@ def brukerveiledninger():
 
 @app.route("/driftsstatus")
 def driftsstatus():
+    # Each entry either runs a live check or falls back to a static status.
     service_checks = [
         {
             "navn": "E-post (Outlook / Exchange)",
