@@ -86,3 +86,15 @@ mappelevering/
 - Alle SQL-spørringer bruker parametriserte verdier (`?`-plassholdere) for å unngå SQL-injeksjon.
 - Brukeren må huke av samtykkeboks før skjemaet kan sendes inn (GDPR).
 - Databasefilen (`ikt_portal.db`) bør ikke eksponeres offentlig – den ligger utenfor `static/`-mappen.
+
+## Automatisk driftsstatus
+
+`/driftsstatus` kan hente live status automatisk hvis du setter miljøvariabler for sjekkene:
+
+- `DRIFTSSTATUS_EMAIL_URL`
+- `DRIFTSSTATUS_VPN_HOST` og `DRIFTSSTATUS_VPN_PORT`
+- `DRIFTSSTATUS_FILESERVER_HOST` og `DRIFTSSTATUS_FILESERVER_PORT`
+- `DRIFTSSTATUS_PRINTER_HOST` og `DRIFTSSTATUS_PRINTER_PORT`
+- `DRIFTSSTATUS_TEAMS_URL`
+
+Hvis en verdi ikke er satt, brukes den innebygde fallback-statusen i stedet.

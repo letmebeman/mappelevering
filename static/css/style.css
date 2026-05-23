@@ -58,7 +58,6 @@ a:hover { text-decoration: underline; }
   padding: .85rem 1.5rem;
 }
 .logo { display: flex; align-items: center; gap: .5rem; font-size: 1.35rem; font-weight: 700; }
-.logo-icon { font-size: 1.6rem; }
 .logo-text { letter-spacing: .02em; }
 
 .main-nav { display: flex; gap: 1rem; flex-wrap: wrap; }
@@ -304,6 +303,7 @@ a:hover { text-decoration: underline; }
   padding: 2rem 2rem 1.5rem;
   margin-bottom: 2rem;
   box-shadow: var(--shadow);
+  scroll-margin-top: 20rem;
 }
 .guide-article h2 {
   font-size: 1.3rem;
@@ -379,4 +379,5 @@ code {
   .hero h1 { font-size: 1.6rem; }
   .form-card { padding: 1.5rem 1.2rem; }
   .guide-article { padding: 1.25rem 1.1rem; }
+  .guide-article { scroll-margin-top: 20rem; }
 }

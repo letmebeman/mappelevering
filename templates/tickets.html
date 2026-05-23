@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Tickets – IKT-Portalen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📬 Tickets</h1>
+  <p>Oversikt over alle innsendte support-saker fra SQLite-databasen.</p>
+</div>
+
+<p class="status-footer">
+  <a href="{{ url_for('admin_logout') }}">Logg ut</a>
+</p>
+
+{% if tickets %}
+<div class="status-table-wrap">
+  <table class="status-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Navn</th>
+        <th>E-post</th>
+        <th>Problem</th>
+        <th>Samtykke</th>
+        <th>Opprettet</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ticket in tickets %}
+      <tr>
+        <td>{{ ticket.id }}</td>
+        <td>{{ ticket.navn }}</td>
+        <td>{{ ticket.epost }}</td>
+        <td>{{ ticket.problem }}</td>
+        <td>{% if ticket.samtykke %}Ja{% else %}Nei{% endif %}</td>
+        <td>{{ ticket.opprettet }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="info-banner">
+  <h3>Ingen tickets ennå</h3>
+  <p>Det er ikke sendt inn noen saker til databasen ennå.</p>
+</div>
+{% endif %}
+{% endblock %}
