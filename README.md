@@ -27,7 +27,12 @@ source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # 3. Start applikasjonen
-python app.py
+cd /home/kubus/Documents/GitHub/mappelevering && . venv/bin/activate && set -a && source .env && set +a && python - <<'PY'
+from app import app, init_db
+init_db()
+app.run(debug=False, use_reloader=False, host='127.0.0.1', port=5003)
+PY
+
 ```
 
 Åpne http://localhost:5000 i nettleseren.
