@@ -27,11 +27,7 @@ source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # 3. Start applikasjonen
-cd /home/kubus/Documents/GitHub/mappelevering && . venv/bin/activate && set -a && source .env && set +a && python - <<'PY'
-from app import app, init_db
-init_db()
-app.run(debug=False, use_reloader=False, host='127.0.0.1', port=5003)
-PY
+python app.py
 
 ```
 
@@ -55,7 +51,7 @@ sudo /opt/ikt-portalen/venv/bin/pip install gunicorn
 sudo chown -R iktportal:iktportal /opt/ikt-portalen
 ```
 
-Merk: `gunicorn` må installeres manuelt da det ikke er i `requirements.txt`.
+Merk: `server_setup.sh` installerer `gunicorn` automatisk. Denne manuelle kommandoen er bare nødvendig hvis du setter opp tjenesten uten skriptet.
 
 3. Opprett systemd-tjeneste
 
@@ -67,11 +63,13 @@ After=network.target
 
 [Service]
 User=iktportal
+Group=iktportal
 WorkingDirectory=/opt/ikt-portalen
 Environment="PATH=/opt/ikt-portalen/venv/bin"
 EnvironmentFile=-/opt/ikt-portalen/.env
-ExecStart=/opt/ikt-portalen/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 app:app
+ExecStart=/opt/ikt-portalen/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:5000 app:app
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
@@ -130,7 +128,7 @@ sudo systemctl start ikt-portalen
 sudo systemctl status ikt-portalen
 ```
 
-Appen er nå tilgjengelig på `http://<VM-IP>:8000`.
+Appen er nå tilgjengelig på `http://<VM-IP>:5000`.
 
 7. (Valgfritt) Nginx som reverse proxy på port 80
 
@@ -143,7 +141,7 @@ server {
     server_name _;
 
     location / {
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
