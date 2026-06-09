@@ -41,7 +41,7 @@ services:
     container_name: alloy
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./alloy:/etc/alloy:ro
       - alloy_data:/var/lib/alloy/data
     command:
       - run
