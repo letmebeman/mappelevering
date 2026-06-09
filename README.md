@@ -2,7 +2,7 @@
 
 Intern nettportal for IT-avdelingen. Ansatte kan melde inn IT-problemer (support-ticket), lese brukerveiledninger og sjekke driftsstatus. Admin-delen viser ticket-oversikt, enkel observability og helse for app og database.
 
-Bygget med Python / Flask, SQLite og Gunicorn. Appen kan kjøres lokalt for utvikling eller som Docker-container på en VM/server.
+Bygget med Python / Flask, SQLite og Gunicorn. Appen kan kjøres lokalt for utvikling eller som Docker-stack på en VM/server. Stacken inneholder også Grafana, Loki og Grafana Alloy for enkel logging og observability.
 
 ## Funksjoner
 
@@ -41,7 +41,7 @@ python app.py
 
 ## Dockeroppsett
 
-Dockerfile bygger en container som kjører appen med Gunicorn. SQLite lagres i `/data`, så bruk et Docker-volume for å beholde tickets etter restart eller rebuild.
+Dockerfile bygger en container som kjører appen med Gunicorn. SQLite lagres i `/data`, så Docker Compose bruker et volume for å beholde tickets etter restart eller rebuild.
 
 1. Lag eller oppdater `.env`
 
@@ -51,6 +51,8 @@ ADMIN_PASSWORD_HASH=lim-inn-hash-fra-make-hash-password
 ADMIN_PASSWORD=ditt-valgte-passord
 TICKET_HASH_SALT=tilfeldig-streng-for-ticket-hashing
 ```
+
+`SECRET_KEY` og enten `ADMIN_PASSWORD` eller `ADMIN_PASSWORD_HASH` må være satt. Hvis ikke blir admin-login blokkert.
 
 2. Bygg image
 
@@ -71,6 +73,44 @@ docker run --rm -p 5000:5000 --env-file .env -e DATABASE_PATH=/data/ikt_portal.d
 ```
 
 Åpne `http://localhost:5000`. På en VM bruker du `http://<VM-IP>:5000`.
+
+## Docker Compose / Portainer stack
+
+`docker-compose.yml` starter fire tjenester:
+
+| Tjeneste | Port | Beskrivelse |
+|----------|------|-------------|
+| `ikt-portal` | `5000` | Flask/Gunicorn-applikasjonen |
+| `grafana` | `3000` | Dashboard og loggvisning |
+| `loki` | intern | Lagrer logger |
+| `alloy` | intern `12345` | Leser Docker-logger og sender dem til Loki |
+
+Før stacken deployes i Portainer må disse miljøvariablene settes under stackens environment variables:
+
+```env
+SECRET_KEY=lang-tilfeldig-hemmelig-verdi
+ADMIN_PASSWORD=ditt-admin-passord
+```
+
+Alternativt kan `ADMIN_PASSWORD_HASH` brukes i stedet for `ADMIN_PASSWORD`, men da må `docker-compose.yml` oppdateres til å sende inn hash-variabelen.
+
+Viktig for Portainer:
+
+- Hvis stacken deployes fra Git, må repoet inneholde både `docker-compose.yml` og `alloy/config.alloy`.
+- Hvis compose-filen limes direkte inn i Portainer, finnes ikke `./alloy/config.alloy` automatisk på serveren. Da må Alloy-konfigurasjonen opprettes på serveren og mountes med absolutt sti.
+- `build: .` krever at Portainer har tilgang til repoet som build context. Hvis du deployer uten Git-build, bygg og push imaget først og bruk `image:` i stedet.
+
+Alloy-konfigurasjonen ligger i `alloy/config.alloy`. Compose-filen mounter hele mappen:
+
+```yaml
+- ./alloy:/etc/alloy:ro
+```
+
+Da leser Alloy konfigurasjonen fra:
+
+```text
+/etc/alloy/config.alloy
+```
 
 ## Docker drift og feilsøking
 
@@ -97,7 +137,9 @@ Vanlige feil og løsninger:
 | Feil | Løsning |
 |------|---------|
 | Port `5000` er opptatt | Kjør `PORT=5001 make docker-run` |
-| Admin-login virker ikke | Sjekk `ADMIN_PASSWORD_HASH` eller `ADMIN_PASSWORD` i `.env` |
+| Admin-login virker ikke | Sjekk at `SECRET_KEY` og `ADMIN_PASSWORD` eller `ADMIN_PASSWORD_HASH` er satt i miljøvariabler |
+| `Admin password is not configured` | Legg til `ADMIN_PASSWORD` eller `ADMIN_PASSWORD_HASH` i Portainer stack environment variables og redeploy |
+| Alloy feiler med `not a directory` ved mount | Sjekk at `alloy/config.alloy` finnes som fil i Git-repoet eller på serveren, ikke som mappe |
 | Tickets forsvinner etter rebuild | Sjekk at containeren startes med `-v ikt_portalen_data:/data` |
 | `/health` viser databasefeil | Sjekk at `DATABASE_PATH=/data/ikt_portal.db` og at volumet er skrivbart |
 
@@ -133,6 +175,24 @@ Logger skrives til standard output/stderr, så de kan leses med:
 
 ```bash
 docker logs -f <container-id>
+```
+
+I Docker Compose-stack samles containerlogger også av Grafana Alloy. Alloy leser Docker-loggene fra:
+
+```text
+/var/lib/docker/containers/*/*.log
+```
+
+Loggene prosesseres med `stage.docker {}` og sendes til Loki:
+
+```text
+http://loki:3100/loki/api/v1/push
+```
+
+I Grafana kan Loki legges til som datasource med URL:
+
+```text
+http://loki:3100
 ```
 
 Typiske hendelser som logges:
@@ -184,7 +244,10 @@ Dette er en god demo fordi du kan bruke både logger, statuskommandoer og helse-
 
 ```text
 mappelevering/
+├── alloy/
+│   └── config.alloy              # Grafana Alloy-konfigurasjon for Docker-logger
 ├── app.py                       # Flask-applikasjon og ruter
+├── docker-compose.yml            # Stack med app, Grafana, Loki og Alloy
 ├── Dockerfile                   # Docker-image for Gunicorn
 ├── Makefile                     # Lokale kommandoer for run, hashing og Docker
 ├── requirements.txt             # Python-avhengigheter
@@ -219,7 +282,7 @@ mappelevering/
 
 - Kjøre Flask-applikasjonen som Docker-container med Gunicorn.
 - Bruke Docker-kommandoer og container-logger for drift og feilsøking.
-- Dokumentere installasjon, loggvurdering og enkel overvåking med Grafana.
+- Dokumentere installasjon, loggvurdering og enkel overvåking med Grafana, Loki og Alloy.
 
 ## Sikkerhet og personvern
 
@@ -247,3 +310,5 @@ Hvis du ved et uhell har committet hemmeligheter, roter dem umiddelbart og fjern
 - SQLite lagrer support tickets i Docker-volumet på serveren.
 - Gunicorn kjører appen som en stabil WSGI-tjeneste i Docker-containeren.
 - Et Docker-volume lagrer SQLite-data utenfor containerens filsystem.
+- Grafana Alloy leser Docker-containerlogger og sender dem til Loki.
+- Grafana brukes til å utforske og vise loggene fra Loki.
