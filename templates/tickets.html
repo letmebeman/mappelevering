@@ -3,13 +3,66 @@
 
 {% block content %}
 <div class="page-header">
-  <h1>📬 Tickets</h1>
-  <p>Oversikt over alle innsendte support-saker fra SQLite-databasen.</p>
+  <h1>📬 Admin dashboard</h1>
+  <p>Her kan IT-support følge opp tickets, endre status og se enkel observability for app og database.</p>
 </div>
 
-<p class="status-footer">
-  <a href="{{ url_for('admin_logout') }}">Logg ut</a>
-</p>
+<section class="dashboard-grid">
+  <article class="stat-card">
+    <span class="stat-label">Totalt</span>
+    <strong>{{ summary.total }}</strong>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Åpne</span>
+    <strong>{{ summary.open_count }}</strong>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Under arbeid</span>
+    <strong>{{ summary.in_progress_count }}</strong>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Løst</span>
+    <strong>{{ summary.solved_count }}</strong>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Høy prioritet</span>
+    <strong>{{ summary.high_priority_count }}</strong>
+  </article>
+</section>
+
+<section class="dashboard-links">
+  <a class="dashboard-link" href="{{ url_for('tickets') }}">Ticket-oversikt</a>
+  <a class="dashboard-link" href="{{ url_for('brukerveiledninger') }}">Feilsøkingsdokumentasjon</a>
+  <a class="dashboard-link" href="{{ url_for('driftsstatus') }}">Driftsstatus</a>
+  <a class="dashboard-link" href="{{ url_for('health') }}">/health</a>
+  <a class="dashboard-link" href="{{ metrics_url }}">/metrics</a>
+  <a class="dashboard-link" href="{{ grafana_url }}" target="_blank" rel="noreferrer">Grafana</a>
+</section>
+
+<section class="observability-grid">
+  <article class="info-panel">
+    <h2>Observability</h2>
+    <p><strong>Applikasjon:</strong> {{ health.app }}</p>
+    <p><strong>Database:</strong> {{ health.database }}</p>
+    <p><strong>Sist helsesjekk:</strong> {{ health.checked_at }}</p>
+    <p><strong>Logging:</strong> Følg tjenesten med <code>journalctl -u ikt-portalen -f</code>.</p>
+  </article>
+  <article class="info-panel">
+    <h2>Supportflyt</h2>
+    <p>1. Bruker oppretter ticket.</p>
+    <p>2. Ticket lagres i SQLite.</p>
+    <p>3. Admin logger inn, endrer status og bruker dokumentasjon ved feilsøking.</p>
+    <p>4. <code>/health</code> og logger bekrefter drift og feilsøking.</p>
+  </article>
+</section>
+
+<div class="filter-bar">
+  <span>Filtrer etter status:</span>
+  <a class="filter-pill{% if status_filter == 'all' %} active{% endif %}" href="{{ url_for('tickets') }}">Alle</a>
+  {% for value, label in status_options.items() %}
+  <a class="filter-pill{% if status_filter == value %} active{% endif %}" href="{{ url_for('tickets', status=value) }}">{{ label }}</a>
+  {% endfor %}
+</div>
 
 {% if tickets %}
 <div class="status-table-wrap">
@@ -20,8 +73,11 @@
         <th>Navn</th>
         <th>E-post</th>
         <th>Problem</th>
-        <th>Samtykke</th>
+        <th>Status</th>
+        <th>Prioritet</th>
+        <th>Kategori</th>
         <th>Opprettet</th>
+        <th>Oppdater status</th>
         <th>Handling</th>
       </tr>
     </thead>
@@ -31,9 +87,37 @@
         <td>{{ ticket.id }}</td>
         <td>{{ ticket.navn }}</td>
         <td>{{ ticket.epost }}</td>
-        <td>{{ ticket.problem }}</td>
-        <td>{% if ticket.samtykke %}Ja{% else %}Nei{% endif %}</td>
+        <td class="ticket-problem">{{ ticket.problem }}</td>
+        <td>
+          {% if ticket.status == 'open' %}
+            <span class="badge badge-open">Åpen</span>
+          {% elif ticket.status == 'in_progress' %}
+            <span class="badge badge-progress">Under arbeid</span>
+          {% else %}
+            <span class="badge badge-solved">Løst</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if ticket.priority == 'high' %}
+            <span class="badge badge-high">Høy</span>
+          {% elif ticket.priority == 'medium' %}
+            <span class="badge badge-medium">Middels</span>
+          {% else %}
+            <span class="badge badge-low">Lav</span>
+          {% endif %}
+        </td>
+        <td>{{ category_options.get(ticket.category, category_options["other"]) }}</td>
         <td>{{ ticket.opprettet }}</td>
+        <td>
+          <form method="post" action="{{ url_for('change_ticket_status', ticket_id=ticket.id, status=status_filter) }}" class="inline-form">
+            <select name="status" aria-label="Oppdater status for ticket {{ ticket.id }}">
+              {% for value, label in status_options.items() %}
+              <option value="{{ value }}"{% if ticket.status == value %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-secondary btn-small">Lagre</button>
+          </form>
+        </td>
         <td>
           <form method="post" action="{{ url_for('delete_ticket', ticket_id=ticket.id) }}" onsubmit="return confirm('Slett denne ticketen?');">
             <button type="submit" class="btn btn-link">Slett</button>
@@ -50,4 +134,8 @@
   <p>Det er ikke sendt inn noen saker til databasen ennå.</p>
 </div>
 {% endif %}
+
+<p class="status-footer">
+  Du kan følge logs direkte med <code>journalctl -u ikt-portalen -f</code> og kontrollere appstatus i <a href="{{ url_for('health') }}">/health</a>.
+</p>
 {% endblock %}

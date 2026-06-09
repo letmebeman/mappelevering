@@ -144,6 +144,14 @@ a:hover { text-decoration: underline; }
 .btn-secondary { background: var(--color-accent); color: var(--color-primary); }
 .btn-secondary:hover { background: #d1e0fd; text-decoration: none; }
 .btn-large { padding: .75rem 2rem; font-size: 1rem; }
+.btn-small { padding: .45rem .9rem; font-size: .85rem; }
+.btn-link {
+  background: transparent;
+  color: var(--color-error);
+  padding: .45rem 0;
+  font-weight: 600;
+}
+.btn-link:hover { text-decoration: underline; }
 
 /* ---------- Info Banner ---------- */
 .info-banner {
@@ -185,6 +193,7 @@ a:hover { text-decoration: underline; }
 .required { color: var(--color-error); margin-left: .15rem; }
 .form-group input[type="text"],
 .form-group input[type="email"],
+.form-group select,
 .form-group textarea {
   width: 100%;
   padding: .65rem .9rem;
@@ -197,6 +206,7 @@ a:hover { text-decoration: underline; }
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: var(--color-primary);
@@ -207,6 +217,13 @@ a:hover { text-decoration: underline; }
   border-color: var(--color-error);
 }
 .error-msg { color: var(--color-error); font-size: .875rem; margin-top: .3rem; }
+.form-help { color: var(--color-muted); font-size: .92rem; margin-bottom: 1rem; }
+
+.split-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
 
 /* Checkbox */
 .form-group-check { margin-top: 1rem; }
@@ -269,6 +286,85 @@ a:hover { text-decoration: underline; }
 .status-table td { padding: .8rem 1.1rem; border-bottom: 1px solid var(--color-border); }
 .status-table tr:last-child td { border-bottom: none; }
 .status-table tr:hover td { background: var(--color-accent); }
+
+.ticket-problem { min-width: 18rem; max-width: 26rem; }
+
+.badge-open { background: #dbeafe; color: #1d4ed8; }
+.badge-progress { background: #fef3c7; color: #b45309; }
+.badge-solved { background: #dcfce7; color: #15803d; }
+.badge-low { background: #e2e8f0; color: #475569; }
+.badge-medium { background: #fef9c3; color: #a16207; }
+.badge-high { background: #fee2e2; color: #b91c1c; }
+
+.inline-form {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.inline-form select {
+  min-width: 9rem;
+  padding: .45rem .65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow);
+}
+.stat-label { display: block; color: var(--color-muted); font-size: .9rem; margin-bottom: .3rem; }
+.stat-card strong { font-size: 1.8rem; }
+
+.dashboard-links,
+.filter-bar {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+.dashboard-link,
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: .45rem .8rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: .92rem;
+}
+.dashboard-link:hover,
+.filter-pill:hover { background: var(--color-accent); text-decoration: none; }
+.filter-pill.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+.observability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.info-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.4rem;
+  box-shadow: var(--shadow);
+}
+.info-panel h2 { font-size: 1.05rem; margin-bottom: .6rem; }
+.info-panel p { color: var(--color-text); margin-bottom: .35rem; }
 
 .badge {
   display: inline-block;
@@ -380,4 +476,5 @@ code {
   .form-card { padding: 1.5rem 1.2rem; }
   .guide-article { padding: 1.25rem 1.1rem; }
   .guide-article { scroll-margin-top: 20rem; }
+  .split-fields { grid-template-columns: 1fr; }
 }

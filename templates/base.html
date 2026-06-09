@@ -17,6 +17,12 @@
         <a href="{{ url_for('ticket') }}"{% if request.endpoint == 'ticket' %} class="active"{% endif %}>Support-ticket</a>
         <a href="{{ url_for('brukerveiledninger') }}"{% if request.endpoint == 'brukerveiledninger' %} class="active"{% endif %}>Brukerveiledninger</a>
         <a href="{{ url_for('driftsstatus') }}"{% if request.endpoint == 'driftsstatus' %} class="active"{% endif %}>Driftsstatus</a>
+        {% if session.get('is_admin') %}
+        <a href="{{ url_for('tickets') }}"{% if request.endpoint in ['tickets', 'metrics'] %} class="active"{% endif %}>Admin dashboard</a>
+        <a href="{{ url_for('admin_logout') }}">Logg ut</a>
+        {% else %}
+        <a href="{{ url_for('admin_login') }}"{% if request.endpoint == 'admin_login' %} class="active"{% endif %}>Admin login</a>
+        {% endif %}
       </nav>
     </div>
   </header>

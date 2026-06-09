@@ -1,11 +1,13 @@
-import sqlite3
+import logging
 import os
+import sqlite3
+import sys
 from functools import wraps
 from datetime import datetime, timezone
 from urllib.parse import urljoin, urlparse
 from urllib.request import urlopen
 import socket
-from flask import Flask, render_template, request, redirect, url_for, g, session
+from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
 
 app = Flask(__name__)
 
@@ -14,6 +16,34 @@ DATABASE = os.path.join(os.path.dirname(__file__), "ikt_portal.db")
 app.secret_key = os.environ.get("SECRET_KEY", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
+STATUS_OPTIONS = {
+    "open": "Åpen",
+    "in_progress": "Under arbeid",
+    "solved": "Løst",
+}
+
+PRIORITY_OPTIONS = {
+    "low": "Lav",
+    "medium": "Middels",
+    "high": "Høy",
+}
+
+CATEGORY_OPTIONS = {
+    "network": "Nettverk",
+    "account": "Konto",
+    "software": "Programvare",
+    "hardware": "Maskinvare",
+    "other": "Annet",
+}
+
+LAST_HEALTH_CHECK = {
+    "status": "unknown",
+    "app": "unknown",
+    "database": "unknown",
+    "service": "ikt-portalen",
+    "checked_at": None,
+}
+
 
 # ---------------------------------------------------------------------------
 # Template context processor – makes `now` available in all templates
@@ -21,7 +51,24 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 @app.context_processor
 def inject_now():
-    return {"now": datetime.now(timezone.utc)}
+    return {
+        "now": datetime.now(timezone.utc),
+        "status_options": STATUS_OPTIONS,
+        "priority_options": PRIORITY_OPTIONS,
+        "category_options": CATEGORY_OPTIONS,
+    }
+
+
+def configure_logging():
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+
+    if not any(isinstance(existing_handler, logging.StreamHandler) for existing_handler in app.logger.handlers):
+        app.logger.addHandler(handler)
+
+    app.logger.setLevel(logging.INFO)
+    logging.getLogger("werkzeug").setLevel(logging.INFO)
 
 
 def admin_required(view):
@@ -59,6 +106,12 @@ def check_tcp_target(host, port, timeout=2):
         return False, "Ute av drift"
 
 
+def normalize_choice(value, allowed_values, default_value):
+    if value in allowed_values:
+        return value
+    return default_value
+
+
 # ---------------------------------------------------------------------------
 # Database helpers
 # ---------------------------------------------------------------------------
@@ -78,6 +131,105 @@ def close_connection(exception):
         db.close()
 
 
+def check_database_health():
+    try:
+        with sqlite3.connect(DATABASE) as db:
+            db.execute("SELECT 1").fetchone()
+        return True
+    except Exception as exc:
+        app.logger.error("Health check failed: database unavailable (%s)", exc)
+        return False
+
+
+def build_health_report():
+    database_ok = check_database_health()
+    report = {
+        "status": "ok" if database_ok else "error",
+        "app": "ok",
+        "database": "ok" if database_ok else "error",
+        "service": "ikt-portalen",
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+    LAST_HEALTH_CHECK.update(report)
+    return report
+
+
+def get_ticket_summary():
+    db = get_db()
+    return db.execute(
+        """
+        SELECT
+            COUNT(*) AS total,
+            COALESCE(SUM(status = 'open'), 0) AS open_count,
+            COALESCE(SUM(status = 'in_progress'), 0) AS in_progress_count,
+            COALESCE(SUM(status = 'solved'), 0) AS solved_count,
+            COALESCE(SUM(priority = 'high'), 0) AS high_priority_count
+        FROM tickets
+        """
+    ).fetchone()
+
+
+def get_ticket_breakdown(column_name, values):
+    db = get_db()
+    breakdown = {}
+    for value in values:
+        row = db.execute(
+            f"SELECT COUNT(*) AS count FROM tickets WHERE {column_name} = ?",
+            (value,),
+        ).fetchone()
+        breakdown[value] = row["count"]
+    return breakdown
+
+
+def get_ticket_rows(status_filter):
+    db = get_db()
+    params = []
+    where_clause = ""
+    if status_filter and status_filter != "all":
+        where_clause = "WHERE status = ?"
+        params.append(status_filter)
+
+    return db.execute(
+        f"""
+        SELECT id, navn, epost, problem, samtykke, status, priority, category, opprettet
+        FROM tickets
+        {where_clause}
+        ORDER BY
+            CASE status
+                WHEN 'open' THEN 1
+                WHEN 'in_progress' THEN 2
+                WHEN 'solved' THEN 3
+                ELSE 4
+            END,
+            CASE priority
+                WHEN 'high' THEN 1
+                WHEN 'medium' THEN 2
+                WHEN 'low' THEN 3
+                ELSE 4
+            END,
+            id DESC
+        """,
+        params,
+    ).fetchall()
+
+
+def get_metrics_snapshot():
+    summary = get_ticket_summary()
+    return {
+        "service": "ikt-portalen",
+        "tickets": {
+            "total": summary["total"],
+            "open": summary["open_count"],
+            "in_progress": summary["in_progress_count"],
+            "solved": summary["solved_count"],
+            "high_priority": summary["high_priority_count"],
+            "by_category": get_ticket_breakdown("category", CATEGORY_OPTIONS.keys()),
+        },
+        "health": LAST_HEALTH_CHECK,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 def init_db():
     # Create the ticket table on first run; this is idempotent for deployment.
     db = sqlite3.connect(DATABASE)
@@ -89,12 +241,31 @@ def init_db():
             epost     TEXT    NOT NULL,
             problem   TEXT    NOT NULL,
             samtykke  INTEGER NOT NULL DEFAULT 0,
+            status    TEXT    NOT NULL DEFAULT 'open',
+            priority  TEXT    NOT NULL DEFAULT 'medium',
+            category  TEXT    NOT NULL DEFAULT 'other',
             opprettet DATETIME DEFAULT (datetime('now','localtime'))
         )
         """
     )
+
+    existing_columns = {row[1] for row in db.execute("PRAGMA table_info(tickets)").fetchall()}
+    schema_updates = {
+        "status": "TEXT NOT NULL DEFAULT 'open'",
+        "priority": "TEXT NOT NULL DEFAULT 'medium'",
+        "category": "TEXT NOT NULL DEFAULT 'other'",
+    }
+
+    for column_name, column_definition in schema_updates.items():
+        if column_name not in existing_columns:
+            db.execute(f"ALTER TABLE tickets ADD COLUMN {column_name} {column_definition}")
+
     db.commit()
     db.close()
+
+
+configure_logging()
+init_db()
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +285,8 @@ def ticket():
         epost = request.form.get("epost", "").strip()
         problem = request.form.get("problem", "").strip()
         samtykke = request.form.get("samtykke")
+        priority = normalize_choice(request.form.get("priority", "medium"), PRIORITY_OPTIONS.keys(), "medium")
+        category = normalize_choice(request.form.get("category", "other"), CATEGORY_OPTIONS.keys(), "other")
 
         if not navn:
             errors["navn"] = "Navn er påkrevd."
@@ -126,11 +299,20 @@ def ticket():
 
         if not errors:
             db = get_db()
-            db.execute(
-                "INSERT INTO tickets (navn, epost, problem, samtykke) VALUES (?, ?, ?, ?)",
-                (navn, epost, problem, 1),
+            cursor = db.execute(
+                """
+                INSERT INTO tickets (navn, epost, problem, samtykke, status, priority, category)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (navn, epost, problem, 1, "open", priority, category),
             )
             db.commit()
+            app.logger.info(
+                "Ticket created: id=%s status=open priority=%s category=%s",
+                cursor.lastrowid,
+                priority,
+                category,
+            )
             return redirect(url_for("success"))
 
     return render_template("ticket.html", errors=errors)
@@ -143,12 +325,18 @@ def admin_login():
 
     if request.method == "POST":
         password = request.form.get("password", "")
-        if password == ADMIN_PASSWORD:
+        if not ADMIN_PASSWORD:
+            app.logger.error("Admin login blocked because ADMIN_PASSWORD is not configured")
+            error = "Admin-passord er ikke konfigurert på serveren."
+        elif password == ADMIN_PASSWORD:
             session["is_admin"] = True
+            app.logger.info("Admin login success from %s", request.remote_addr or "unknown")
             if not is_safe_redirect_target(next_page):
                 next_page = url_for("tickets")
             return redirect(next_page)
-        error = "Ugyldig passord."
+        else:
+            app.logger.warning("Admin login failed from %s", request.remote_addr or "unknown")
+            error = "Ugyldig passord."
 
     return render_template("admin_login.html", error=error, next_page=next_page)
 
@@ -162,15 +350,35 @@ def admin_logout():
 @app.route("/tickets")
 @admin_required
 def tickets():
+    status_filter = request.args.get("status", "all")
+    if status_filter not in {"all", *STATUS_OPTIONS.keys()}:
+        status_filter = "all"
+
+    summary = get_ticket_summary()
+    rows = get_ticket_rows(status_filter)
+    health = build_health_report()
+    grafana_url = os.environ.get("GRAFANA_URL", "https://grafana.example.local")
+
+    return render_template(
+        "tickets.html",
+        tickets=rows,
+        summary=summary,
+        health=health,
+        status_filter=status_filter,
+        grafana_url=grafana_url,
+        metrics_url=url_for("metrics"),
+    )
+
+
+@app.route("/tickets/status/<int:ticket_id>", methods=["POST"])
+@admin_required
+def change_ticket_status(ticket_id):
+    new_status = normalize_choice(request.form.get("status", "open"), STATUS_OPTIONS.keys(), "open")
     db = get_db()
-    rows = db.execute(
-        """
-        SELECT id, navn, epost, problem, samtykke, opprettet
-        FROM tickets
-        ORDER BY id DESC
-        """
-    ).fetchall()
-    return render_template("tickets.html", tickets=rows)
+    db.execute("UPDATE tickets SET status = ? WHERE id = ?", (new_status, ticket_id))
+    db.commit()
+    app.logger.info("Ticket status changed: id=%s status=%s", ticket_id, new_status)
+    return redirect(url_for("tickets", status=request.args.get("status", "all")))
 
 
 @app.route("/tickets/delete/<int:ticket_id>", methods=["POST"])
@@ -180,7 +388,21 @@ def delete_ticket(ticket_id):
     db = get_db()
     db.execute("DELETE FROM tickets WHERE id = ?", (ticket_id,))
     db.commit()
+    app.logger.info("Ticket deleted: id=%s", ticket_id)
     return redirect(url_for("tickets"))
+
+
+@app.route("/health")
+def health():
+    report = build_health_report()
+    status_code = 200 if report["status"] == "ok" else 503
+    return jsonify(report), status_code
+
+
+@app.route("/metrics")
+@admin_required
+def metrics():
+    return jsonify(get_metrics_snapshot())
 
 
 @app.route("/success")
@@ -251,6 +473,5 @@ def driftsstatus():
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(debug=debug_mode, host="0.0.0.0", port=5000)

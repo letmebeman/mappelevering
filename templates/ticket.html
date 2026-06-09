@@ -36,6 +36,28 @@
       {% if errors.problem %}<p class="error-msg">{{ errors.problem }}</p>{% endif %}
     </div>
 
+    <div class="split-fields">
+      <div class="form-group">
+        <label for="priority">Prioritet</label>
+        <select id="priority" name="priority">
+          {% for value, label in priority_options.items() %}
+          <option value="{{ value }}"{% if request.form.get('priority', 'medium') == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="category">Kategori</label>
+        <select id="category" name="category">
+          {% for value, label in category_options.items() %}
+          <option value="{{ value }}"{% if request.form.get('category', 'other') == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <p class="form-help">Prioritet og kategori hjelper IT-support med å sortere og prioritere saken riktig.</p>
+
     <div class="form-group form-group-check{% if errors.samtykke %} has-error{% endif %}">
       <label class="check-label">
         <input type="checkbox" name="samtykke" value="1"

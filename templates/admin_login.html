@@ -4,10 +4,11 @@
 {% block content %}
 <div class="page-header">
   <h1>🔐 Admin login</h1>
-  <p>Logg inn for å se innsendte tickets.</p>
+  <p>Logg inn for å åpne admin-dashboardet med tickets, status og observability.</p>
 </div>
 
 <div class="form-card">
+  <p class="form-help">Bruk passordet fra <code>.env</code> eller systemd-miljøet. Etter innlogging kommer du til den operative oversikten.</p>
   <form method="POST" action="{{ url_for('admin_login') }}">
     <input type="hidden" name="next" value="{{ next_page }}" />
     <div class="form-group">

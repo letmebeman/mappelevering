@@ -52,6 +52,15 @@ cp -r "$SCRIPT_DIR"/app.py \
 
 chown -R "$SERVICE_USER":"$SERVICE_USER" "$APP_DIR"
 
+if [ ! -f "$APP_DIR/.env" ]; then
+    cat > "$APP_DIR/.env" <<EOF
+SECRET_KEY=endre-denne-hemmelige-nokkelen
+ADMIN_PASSWORD=endre-dette-passordet
+EOF
+    chmod 600 "$APP_DIR/.env"
+    chown "$SERVICE_USER":"$SERVICE_USER" "$APP_DIR/.env"
+fi
+
 # --------------------------------------------------
 # 4. Virtualenv og Python-avhengigheter
 # --------------------------------------------------
@@ -86,11 +95,13 @@ User=${SERVICE_USER}
 Group=${SERVICE_USER}
 WorkingDirectory=${APP_DIR}
 Environment="PATH=${APP_DIR}/venv/bin"
-ExecStart=${APP_DIR}/venv/bin/gunicorn \\
-    --workers 2 \\
-    --bind ${LISTEN_HOST}:${LISTEN_PORT} \\
-    --access-logfile /var/log/${SERVICE_NAME}-access.log \\
-    --error-logfile  /var/log/${SERVICE_NAME}-error.log \\
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=${APP_DIR}/.env
+ExecStart=${APP_DIR}/venv/bin/gunicorn \
+    --workers 2 \
+    --bind ${LISTEN_HOST}:${LISTEN_PORT} \
+    --access-logfile - \
+    --error-logfile - \
     app:app
 Restart=always
 RestartSec=5
