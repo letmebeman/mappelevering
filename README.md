@@ -112,6 +112,119 @@ Da leser Alloy konfigurasjonen fra:
 /etc/alloy/config.alloy
 ```
 
+### Steg for steg i Portainer
+
+1. Åpne Portainer i nettleseren:
+
+```text
+https://x.x.x.x:9443
+```
+
+2. Klikk `Stacks`, klikk `Add stack`, og velg `Repository`.
+
+3. Legg inn repository URL:
+
+```text
+https://github.com/letmebeman/mappelevering.git
+```
+
+Sett reference til:
+
+```text
+refs/heads/main
+```
+
+Sett compose path til:
+
+```text
+docker-compose.yml
+```
+
+Klikk `Create`.
+
+4. Etter at stacken er opprettet: gå tilbake til `Stacks`, klikk på stacken, åpne `Env variables`, velg `Advanced mode`, og lim inn:
+
+```env
+SECRET_KEY=some-long-random-secret
+ADMIN_PASSWORD=your-password
+```
+
+Lagre, og klikk deretter `Pull and redeploy`.
+
+5. Åpne nettsiden:
+
+```text
+http://x.x.x.x:5000
+```
+
+Admin-login finnes på:
+
+```text
+http://x.x.x.x:5000/admin/login
+```
+
+## Grafana-oppsett
+
+Grafana kjører på port `3000`:
+
+```text
+http://x.x.x.x:3000
+```
+
+Standard innlogging for en ny Grafana-container er vanligvis:
+
+```text
+Brukernavn: admin
+Passord: admin
+```
+
+Grafana ber deg vanligvis lage nytt passord første gang du logger inn.
+
+### Legg til Loki som datasource
+
+1. Logg inn i Grafana på `http://x.x.x.x:3000`.
+2. Gå til `Connections` / `Data sources`.
+3. Klikk `Add new data source`.
+4. Velg `Loki`.
+5. Sett URL til:
+
+```text
+http://loki:3100
+```
+
+6. Klikk `Save & test`.
+
+Offisiell dokumentasjon:
+
+- Grafana Loki datasource: https://grafana.com/docs/grafana/latest/datasources/loki/
+- Grafana Alloy Docker: https://grafana.com/docs/alloy/latest/set-up/install/docker/
+- Alloy `loki.source.file`: https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file/
+- Alloy `loki.write`: https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write/
+
+Hvis URL-er eller menyer endrer seg, bruk denne plassen til egne notater:
+
+```text
+TODO: Legg inn skolens/serverens egne Grafana-instruksjoner her.
+```
+
+### Se logger i Grafana
+
+Etter at Loki datasource er lagt til:
+
+1. Gå til `Explore`.
+2. Velg `Loki` som datasource.
+3. Søk etter Docker-logger med:
+
+```logql
+{job="docker"}
+```
+
+For å filtrere etter tekst i loggene kan du bruke:
+
+```logql
+{job="docker"} |= "ticket"
+```
+
 ## Docker drift og feilsøking
 
 Bygg på nytt etter kodeendringer:

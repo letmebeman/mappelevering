@@ -53,6 +53,25 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
+      
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - /opt/ikt-portal/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+    networks:
+      - monitoring
 
 volumes:
   ikt_data:
