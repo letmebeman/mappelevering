@@ -59,7 +59,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - /opt/ikt-portal/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
     restart: unless-stopped
     networks:
@@ -78,6 +78,7 @@ volumes:
   grafana_data:
   loki_data:
   alloy_data:
+  prometheus_data:
 
 networks:
   appnet:
