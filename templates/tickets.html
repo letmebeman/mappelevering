@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Tickets – IKT-Portalen{% endblock %}
+{% block container_class %}container-wide{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -34,7 +35,7 @@
   <a class="dashboard-link" href="{{ url_for('tickets') }}">Ticket-oversikt</a>
   <a class="dashboard-link" href="{{ url_for('brukerveiledninger') }}">Feilsøkingsdokumentasjon</a>
   <a class="dashboard-link" href="{{ url_for('driftsstatus') }}">Driftsstatus</a>
-  <a class="dashboard-link" href="{{ url_for('health') }}">/health</a>
+  <a class="dashboard-link" href="{{ url_for('admin_health') }}">Helse og metrics</a>
   <a class="dashboard-link" href="{{ metrics_url }}">/metrics</a>
   <a class="dashboard-link" href="{{ grafana_url }}" target="_blank" rel="noreferrer">Grafana</a>
 </section>
@@ -76,6 +77,7 @@
         <th>Status</th>
         <th>Prioritet</th>
         <th>Kategori</th>
+        <th>Notater / løsning</th>
         <th>Opprettet</th>
         <th>Oppdater status</th>
         <th>Handling</th>
@@ -85,8 +87,14 @@
       {% for ticket in tickets %}
       <tr>
         <td>{{ ticket.id }}</td>
-        <td>{{ ticket.navn }}</td>
-        <td>{{ ticket.epost }}</td>
+        <td>
+          {{ ticket.navn }}
+          <span class="ticket-hash">Hash: {{ ticket.navn_hash[:10] }}</span>
+        </td>
+        <td>
+          {{ ticket.epost }}
+          <span class="ticket-hash">Hash: {{ ticket.epost_hash[:10] }}</span>
+        </td>
         <td class="ticket-problem">{{ ticket.problem }}</td>
         <td>
           {% if ticket.status == 'open' %}
@@ -107,6 +115,12 @@
           {% endif %}
         </td>
         <td>{{ category_options.get(ticket.category, category_options["other"]) }}</td>
+        <td class="ticket-notes-cell">
+          <form method="post" action="{{ url_for('update_ticket_notes', ticket_id=ticket.id, status=status_filter) }}" class="notes-form">
+            <textarea name="admin_notes" aria-label="Adminnotater for ticket {{ ticket.id }}" placeholder="Skriv løsning, tiltak eller neste steg...">{{ ticket.admin_notes }}</textarea>
+            <button type="submit" class="btn btn-secondary btn-small">Lagre notat</button>
+          </form>
+        </td>
         <td>{{ ticket.opprettet }}</td>
         <td>
           <form method="post" action="{{ url_for('change_ticket_status', ticket_id=ticket.id, status=status_filter) }}" class="inline-form">

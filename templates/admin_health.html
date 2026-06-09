@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Helse og metrics - IKT-Portalen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Helse og metrics</h1>
+  <p>Lesbar oversikt for admin. De rå JSON-endepunktene finnes fortsatt for tekniske kontroller.</p>
+</div>
+
+<section class="dashboard-grid">
+  <article class="stat-card">
+    <span class="stat-label">Status</span>
+    <strong>{{ health.status }}</strong>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">App</span>
+    <strong>{{ health.app }}</strong>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Database</span>
+    <strong>{{ health.database }}</strong>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Sist sjekket</span>
+    <strong class="stat-time">{{ health.checked_at }}</strong>
+  </article>
+</section>
+
+<section class="dashboard-links">
+  <a class="dashboard-link" href="{{ dashboard_url }}">Admin dashboard</a>
+  <a class="dashboard-link" href="{{ raw_health_url }}">Rå /health JSON</a>
+  <a class="dashboard-link" href="{{ raw_metrics_url }}">Rå /metrics JSON</a>
+</section>
+
+<section class="observability-grid">
+  <article class="info-panel">
+    <h2>Ticket metrics</h2>
+    <p><strong>Totalt:</strong> {{ metrics.tickets.total }}</p>
+    <p><strong>Åpne:</strong> {{ metrics.tickets.open }}</p>
+    <p><strong>Under arbeid:</strong> {{ metrics.tickets.in_progress }}</p>
+    <p><strong>Løst:</strong> {{ metrics.tickets.solved }}</p>
+    <p><strong>Høy prioritet:</strong> {{ metrics.tickets.high_priority }}</p>
+  </article>
+  <article class="info-panel">
+    <h2>Kategorier</h2>
+    {% for value, count in metrics.tickets.by_category.items() %}
+    <p><strong>{{ category_options[value] }}:</strong> {{ count }}</p>
+    {% endfor %}
+  </article>
+</section>
+
+<section class="info-panel">
+  <h2>Teknisk detalj</h2>
+  <p><strong>Tjeneste:</strong> {{ health.service }}</p>
+  <p><strong>ISO-tid:</strong> <code>{{ health.checked_at_iso }}</code></p>
+  <p><strong>Generert:</strong> <code>{{ metrics.generated_at }}</code></p>
+</section>
+{% endblock %}

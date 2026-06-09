@@ -19,6 +19,7 @@
         <a href="{{ url_for('driftsstatus') }}"{% if request.endpoint == 'driftsstatus' %} class="active"{% endif %}>Driftsstatus</a>
         {% if session.get('is_admin') %}
         <a href="{{ url_for('tickets') }}"{% if request.endpoint in ['tickets', 'metrics'] %} class="active"{% endif %}>Admin dashboard</a>
+        <a href="{{ url_for('admin_health') }}"{% if request.endpoint == 'admin_health' %} class="active"{% endif %}>Helse</a>
         <a href="{{ url_for('admin_logout') }}">Logg ut</a>
         {% else %}
         <a href="{{ url_for('admin_login') }}"{% if request.endpoint == 'admin_login' %} class="active"{% endif %}>Admin login</a>
@@ -28,7 +29,7 @@
   </header>
 
   <main class="site-main">
-    <div class="container">
+    <div class="container {% block container_class %}{% endblock %}">
       {% block content %}{% endblock %}
     </div>
   </main>

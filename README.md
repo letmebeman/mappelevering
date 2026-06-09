@@ -2,7 +2,7 @@
 
 Intern nettportal for IT-avdelingen. Ansatte kan melde inn IT-problemer (support-ticket), lese brukerveiledninger og sjekke driftsstatus. Admin-delen viser ticket-oversikt, enkel observability og helse for app og database.
 
-Bygget med Python / Flask, SQLite og Gunicorn, og kjører som en systemd-tjeneste på Ubuntu Server i Proxmox.
+Bygget med Python / Flask, SQLite og Gunicorn. Appen kan kjøres lokalt for utvikling eller som Docker-container på en VM/server.
 
 ## Funksjoner
 
@@ -39,172 +39,67 @@ python app.py
 
 Åpne http://localhost:5000 i nettleseren.
 
-## Serveroppsett (Proxmox / Ubuntu Server)
+## Dockeroppsett
 
-For produksjon bruker du vanligvis Gunicorn via systemd, ikke Flask sin innebygde utviklingsserver.
+Dockerfile bygger en container som kjører appen med Gunicorn. SQLite lagres i `/data`, så bruk et Docker-volume for å beholde tickets etter restart eller rebuild.
 
-1. Klon repoet på serveren
-
-```bash
-git clone https://github.com/letmebeman/mappelevering.git /opt/ikt-portalen
-cd /opt/ikt-portalen
-```
-
-2. Opprett virtuelt miljø og installer avhengigheter
-
-```bash
-sudo python3 -m venv /opt/ikt-portalen/venv
-sudo /opt/ikt-portalen/venv/bin/pip install -r requirements.txt
-sudo /opt/ikt-portalen/venv/bin/pip install gunicorn
-sudo chown -R iktportal:iktportal /opt/ikt-portalen
-```
-
-Merk: `server_setup.sh` installerer `gunicorn` automatisk. Denne manuelle kommandoen er bare nødvendig hvis du setter opp tjenesten uten skriptet.
-
-3. Opprett systemd-tjeneste
-
-```bash
-sudo tee /etc/systemd/system/ikt-portalen.service > /dev/null << 'EOF'
-[Unit]
-Description=IKT-Portalen Flask App
-After=network.target
-
-[Service]
-User=iktportal
-Group=iktportal
-WorkingDirectory=/opt/ikt-portalen
-Environment="PATH=/opt/ikt-portalen/venv/bin"
-Environment="PYTHONUNBUFFERED=1"
-EnvironmentFile=-/opt/ikt-portalen/.env
-ExecStart=/opt/ikt-portalen/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:5000 --access-logfile - --error-logfile - app:app
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-
-4. Konfigurer miljøvariabler
-
-```bash
-sudo nano /opt/ikt-portalen/.env
-```
-
-Minimal `.env` for skoleprosjekt:
+1. Lag eller oppdater `.env`
 
 ```env
 SECRET_KEY=tilfeldig-hemmelig-streng
+ADMIN_PASSWORD_HASH=lim-inn-hash-fra-make-hash-password
 ADMIN_PASSWORD=ditt-valgte-passord
-
-DRIFTSSTATUS_TEAMS_URL=https://teams.microsoft.com
+TICKET_HASH_SALT=tilfeldig-streng-for-ticket-hashing
 ```
 
-Valgfrie driftsstatus-variabler (sett kun de du faktisk har):
-
-```env
-DRIFTSSTATUS_EMAIL_URL=https://mail.domene.no
-DRIFTSSTATUS_VPN_HOST=vpn.domene.no
-DRIFTSSTATUS_VPN_PORT=443
-DRIFTSSTATUS_FILESERVER_HOST=192.168.1.10
-DRIFTSSTATUS_FILESERVER_PORT=445
-DRIFTSSTATUS_PRINTER_HOST=192.168.1.20
-DRIFTSSTATUS_PRINTER_PORT=9100
-```
-
-Variabler som ikke er satt bruker automatisk fallback-statusen fra koden ("Normal drift").
-
-Sett riktige tilganger på filen:
+2. Bygg image
 
 ```bash
-sudo chmod 600 /opt/ikt-portalen/.env
-sudo chown iktportal:iktportal /opt/ikt-portalen/.env
+make docker-build
 ```
 
-5. Initialiser databasen
+3. Start container
 
 ```bash
-cd /opt/ikt-portalen
-sudo -u iktportal /opt/ikt-portalen/venv/bin/python -c "from app import init_db; init_db()"
+make docker-run
 ```
 
-6. Start tjenesten
+Dette kjører tilsvarende:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable ikt-portalen
-sudo systemctl start ikt-portalen
-sudo systemctl status ikt-portalen
+docker run --rm -p 5000:5000 --env-file .env -e DATABASE_PATH=/data/ikt_portal.db -v ikt_portalen_data:/data ikt-portalen
 ```
 
-Appen er nå tilgjengelig på `http://<VM-IP>:5000`.
+Åpne `http://localhost:5000`. På en VM bruker du `http://<VM-IP>:5000`.
 
-Stopp, start og restart:
+## Docker drift og feilsøking
+
+Bygg på nytt etter kodeendringer:
 
 ```bash
-sudo systemctl stop ikt-portalen
-sudo systemctl start ikt-portalen
-sudo systemctl restart ikt-portalen
+make docker-build
 ```
 
-7. (Valgfritt) Nginx som reverse proxy på port 80
+Start appen:
 
 ```bash
-sudo apt install nginx -y
-
-sudo tee /etc/nginx/sites-available/ikt-portalen > /dev/null << 'EOF'
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-EOF
-
-sudo ln -s /etc/nginx/sites-available/ikt-portalen /etc/nginx/sites-enabled/
-sudo rm /etc/nginx/sites-enabled/default
-sudo systemctl restart nginx
+make docker-run
 ```
 
-## Oppdatere appen etter nye endringer
+Se container-logger:
 
 ```bash
-cd /opt/ikt-portalen
-sudo -u iktportal git pull
-sudo systemctl restart ikt-portalen
-```
-
-Hvis du har lagt til nye Python-pakker:
-
-```bash
-sudo /opt/ikt-portalen/venv/bin/pip install -r requirements.txt
-```
-
-Hvis du har endret databasestrukturen:
-
-```bash
-sudo -u iktportal /opt/ikt-portalen/venv/bin/python -c "from app import init_db; init_db()"
-```
-
-## Feilsøking
-
-Se live logger:
-
-```bash
-sudo journalctl -u ikt-portalen -f
+docker logs -f <container-id>
 ```
 
 Vanlige feil og løsninger:
 
 | Feil | Løsning |
 |------|---------|
-| `status=203/EXEC` | Gunicorn mangler — kjør `pip install gunicorn` i venv |
-| `no such table: tickets` | Database ikke initialisert — kjør `init_db()` |
-| `nano` krasjer i terminal | Bruk `export TERM=xterm` eller bruk `tee` med heredoc i stedet |
+| Port `5000` er opptatt | Kjør `PORT=5001 make docker-run` |
+| Admin-login virker ikke | Sjekk `ADMIN_PASSWORD_HASH` eller `ADMIN_PASSWORD` i `.env` |
+| Tickets forsvinner etter rebuild | Sjekk at containeren startes med `-v ikt_portalen_data:/data` |
+| `/health` viser databasefeil | Sjekk at `DATABASE_PATH=/data/ikt_portal.db` og at volumet er skrivbart |
 
 ## Slik bruker du admin-dashboardet
 
@@ -237,7 +132,7 @@ Eksempel på svar:
 Logger skrives til standard output/stderr, så de kan leses med:
 
 ```bash
-sudo journalctl -u ikt-portalen -f
+docker logs -f <container-id>
 ```
 
 Typiske hendelser som logges:
@@ -259,7 +154,7 @@ En enkel live-demonstrasjon kan være:
 3. Vis at saken lagres i SQLite ved å åpne admin-dashboardet.
 4. Logg inn som admin og endre status til `under arbeid` eller `løst`.
 5. Åpne `/health` og vis at app og database er `ok`.
-6. Vis `journalctl -u ikt-portalen -f` og forklar loggene.
+6. Vis `docker logs -f <container-id>` og forklar loggene.
 7. Åpne Grafana eller annen serverovervåking og forklar hvordan drift følges.
 
 ## Simuler og fiks en vanlig feil
@@ -290,8 +185,9 @@ Dette er en god demo fordi du kan bruke både logger, statuskommandoer og helse-
 ```text
 mappelevering/
 ├── app.py                       # Flask-applikasjon og ruter
+├── Dockerfile                   # Docker-image for Gunicorn
+├── Makefile                     # Lokale kommandoer for run, hashing og Docker
 ├── requirements.txt             # Python-avhengigheter
-├── server_setup.sh              # Bash-oppsettskript for Ubuntu/Proxmox
 ├── ikt_portal.db                # SQLite-database (opprettes automatisk)
 ├── templates/
 │   ├── base.html                # Felles layout (header/footer/nav)
@@ -321,8 +217,8 @@ mappelevering/
 
 ### Driftsstøtte
 
-- Kjøre Flask-applikasjonen som systemd-tjeneste med Gunicorn.
-- Bruke Linux-verktøy som `systemctl` og `journalctl` for drift og feilsøking.
+- Kjøre Flask-applikasjonen som Docker-container med Gunicorn.
+- Bruke Docker-kommandoer og container-logger for drift og feilsøking.
 - Dokumentere installasjon, loggvurdering og enkel overvåking med Grafana.
 
 ## Sikkerhet og personvern
@@ -348,6 +244,6 @@ Hvis du ved et uhell har committet hemmeligheter, roter dem umiddelbart og fjern
 ## Kort forklaring av arkitekturen
 
 - Flask håndterer web-ruter, validering og logging.
-- SQLite lagrer support tickets lokalt på Linux-serveren.
-- Gunicorn kjører appen som en stabil WSGI-tjeneste bak systemd.
-- Nginx kan brukes som reverse proxy hvis du vil vise en mer realistisk produksjonsløsning.
+- SQLite lagrer support tickets i Docker-volumet på serveren.
+- Gunicorn kjører appen som en stabil WSGI-tjeneste i Docker-containeren.
+- Et Docker-volume lagrer SQLite-data utenfor containerens filsystem.

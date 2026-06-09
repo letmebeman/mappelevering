@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import logging
 import os
 import sqlite3
@@ -8,13 +10,37 @@ from urllib.parse import urljoin, urlparse
 from urllib.request import urlopen
 import socket
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
 
-DATABASE = os.path.join(os.path.dirname(__file__), "ikt_portal.db")
-# Keep secrets out of the source tree; production injects these from .env/systemd.
+BASE_DIR = os.path.dirname(__file__)
+
+
+def load_dotenv_file(path):
+    if not os.path.exists(path):
+        return
+
+    with open(path, encoding="utf-8") as env_file:
+        for line in env_file:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip("'\"")
+            os.environ.setdefault(key, value)
+
+
+load_dotenv_file(os.path.join(BASE_DIR, ".env"))
+
+# Keep secrets out of the source tree; Docker and local runs inject these from .env.
+DATABASE = os.environ.get("DATABASE_PATH", os.path.join(BASE_DIR, "ikt_portal.db"))
 app.secret_key = os.environ.get("SECRET_KEY", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
+TICKET_HASH_SALT = os.environ.get("TICKET_HASH_SALT", app.secret_key or "ikt-portalen-local-salt")
 
 STATUS_OPTIONS = {
     "open": "Åpen",
@@ -112,6 +138,24 @@ def normalize_choice(value, allowed_values, default_value):
     return default_value
 
 
+def verify_admin_password(password):
+    if ADMIN_PASSWORD_HASH:
+        return check_password_hash(ADMIN_PASSWORD_HASH, password)
+    if ADMIN_PASSWORD:
+        return hmac.compare_digest(password, ADMIN_PASSWORD)
+    return False
+
+
+def hash_ticket_value(value):
+    normalized_value = value.strip().lower()
+    digest_input = f"{TICKET_HASH_SALT}:{normalized_value}".encode("utf-8")
+    return hashlib.sha256(digest_input).hexdigest()
+
+
+def format_health_timestamp(timestamp):
+    return timestamp.strftime("%m/%d %H:%M")
+
+
 # ---------------------------------------------------------------------------
 # Database helpers
 # ---------------------------------------------------------------------------
@@ -143,12 +187,14 @@ def check_database_health():
 
 def build_health_report():
     database_ok = check_database_health()
+    checked_at = datetime.now().astimezone()
     report = {
         "status": "ok" if database_ok else "error",
         "app": "ok",
         "database": "ok" if database_ok else "error",
         "service": "ikt-portalen",
-        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "checked_at": format_health_timestamp(checked_at),
+        "checked_at_iso": checked_at.astimezone(timezone.utc).isoformat(),
     }
     LAST_HEALTH_CHECK.update(report)
     return report
@@ -191,7 +237,7 @@ def get_ticket_rows(status_filter):
 
     return db.execute(
         f"""
-        SELECT id, navn, epost, problem, samtykke, status, priority, category, opprettet
+        SELECT id, navn, epost, navn_hash, epost_hash, problem, samtykke, status, priority, category, admin_notes, opprettet
         FROM tickets
         {where_clause}
         ORDER BY
@@ -239,11 +285,14 @@ def init_db():
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
             navn      TEXT    NOT NULL,
             epost     TEXT    NOT NULL,
+            navn_hash TEXT    NOT NULL DEFAULT '',
+            epost_hash TEXT   NOT NULL DEFAULT '',
             problem   TEXT    NOT NULL,
             samtykke  INTEGER NOT NULL DEFAULT 0,
             status    TEXT    NOT NULL DEFAULT 'open',
             priority  TEXT    NOT NULL DEFAULT 'medium',
             category  TEXT    NOT NULL DEFAULT 'other',
+            admin_notes TEXT   NOT NULL DEFAULT '',
             opprettet DATETIME DEFAULT (datetime('now','localtime'))
         )
         """
@@ -254,11 +303,27 @@ def init_db():
         "status": "TEXT NOT NULL DEFAULT 'open'",
         "priority": "TEXT NOT NULL DEFAULT 'medium'",
         "category": "TEXT NOT NULL DEFAULT 'other'",
+        "admin_notes": "TEXT NOT NULL DEFAULT ''",
+        "navn_hash": "TEXT NOT NULL DEFAULT ''",
+        "epost_hash": "TEXT NOT NULL DEFAULT ''",
     }
 
     for column_name, column_definition in schema_updates.items():
         if column_name not in existing_columns:
             db.execute(f"ALTER TABLE tickets ADD COLUMN {column_name} {column_definition}")
+
+    rows_missing_hashes = db.execute(
+        """
+        SELECT id, navn, epost
+        FROM tickets
+        WHERE navn_hash = '' OR epost_hash = ''
+        """
+    ).fetchall()
+    for ticket_id, navn, epost in rows_missing_hashes:
+        db.execute(
+            "UPDATE tickets SET navn_hash = ?, epost_hash = ? WHERE id = ?",
+            (hash_ticket_value(navn), hash_ticket_value(epost), ticket_id),
+        )
 
     db.commit()
     db.close()
@@ -301,10 +366,20 @@ def ticket():
             db = get_db()
             cursor = db.execute(
                 """
-                INSERT INTO tickets (navn, epost, problem, samtykke, status, priority, category)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tickets (navn, epost, navn_hash, epost_hash, problem, samtykke, status, priority, category)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (navn, epost, problem, 1, "open", priority, category),
+                (
+                    navn,
+                    epost,
+                    hash_ticket_value(navn),
+                    hash_ticket_value(epost),
+                    problem,
+                    1,
+                    "open",
+                    priority,
+                    category,
+                ),
             )
             db.commit()
             app.logger.info(
@@ -325,10 +400,10 @@ def admin_login():
 
     if request.method == "POST":
         password = request.form.get("password", "")
-        if not ADMIN_PASSWORD:
+        if not ADMIN_PASSWORD_HASH and not ADMIN_PASSWORD:
             app.logger.error("Admin login blocked because ADMIN_PASSWORD is not configured")
             error = "Admin-passord er ikke konfigurert på serveren."
-        elif password == ADMIN_PASSWORD:
+        elif verify_admin_password(password):
             session["is_admin"] = True
             app.logger.info("Admin login success from %s", request.remote_addr or "unknown")
             if not is_safe_redirect_target(next_page):
@@ -345,6 +420,21 @@ def admin_login():
 def admin_logout():
     session.pop("is_admin", None)
     return redirect(url_for("index"))
+
+
+@app.route("/admin/health")
+@admin_required
+def admin_health():
+    health_report = build_health_report()
+    metrics_snapshot = get_metrics_snapshot()
+    return render_template(
+        "admin_health.html",
+        health=health_report,
+        metrics=metrics_snapshot,
+        raw_health_url=url_for("health"),
+        raw_metrics_url=url_for("metrics"),
+        dashboard_url=url_for("tickets"),
+    )
 
 
 @app.route("/tickets")
@@ -378,6 +468,17 @@ def change_ticket_status(ticket_id):
     db.execute("UPDATE tickets SET status = ? WHERE id = ?", (new_status, ticket_id))
     db.commit()
     app.logger.info("Ticket status changed: id=%s status=%s", ticket_id, new_status)
+    return redirect(url_for("tickets", status=request.args.get("status", "all")))
+
+
+@app.route("/tickets/notes/<int:ticket_id>", methods=["POST"])
+@admin_required
+def update_ticket_notes(ticket_id):
+    admin_notes = request.form.get("admin_notes", "").strip()
+    db = get_db()
+    db.execute("UPDATE tickets SET admin_notes = ? WHERE id = ?", (admin_notes, ticket_id))
+    db.commit()
+    app.logger.info("Ticket notes updated: id=%s", ticket_id)
     return redirect(url_for("tickets", status=request.args.get("status", "all")))
 
 
