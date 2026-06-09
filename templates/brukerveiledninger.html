@@ -1,175 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Brukerveiledninger – IKT-Portalen{% endblock %}
+{% block title %}FAQ - IKT-Portalen{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>📖 Brukerveiledninger</h1>
-  <p>Her finner du enkle steg-for-steg-guider for de vanligste IT-utfordringene på jobben.</p>
+  <h1>FAQ</h1>
+  <p>Korte svar på vanlige spørsmål om supportsaker, personvern og feilsøking.</p>
 </div>
 
-<!-- Innholdsfortegnelse -->
 <nav class="guide-toc">
   <h2>Innhold</h2>
   <ol>
-    <li><a href="#nettleserdata">Slette nettleserdata (cache og informasjonskapsler)</a></li>
-    <li><a href="#tregt-nett">Hva gjør jeg om nettet er tregt?</a></li>
-    <li><a href="#passord">Jeg har glemt passordet mitt</a></li>
-    <li><a href="#skriver">Skriveren fungerer ikke</a></li>
-    <li><a href="#vpn">Koble til VPN hjemmefra</a></li>
+    <li><a href="#god-supportsak">Hvordan melder jeg inn en god supportsak?</a></li>
+    <li><a href="#sensitiv-info">Hva skal jeg ikke skrive i en supportsak?</a></li>
+    <li><a href="#nettleserdata">Hvordan sletter jeg nettleserhistorikk, cache og cookies?</a></li>
+    <li><a href="#prioritet">Hva betyr prioritet i en supportsak?</a></li>
+    <li><a href="#kategori">Hvorfor bør jeg velge riktig kategori?</a></li>
   </ol>
 </nav>
 
-<!-- Guide 1 -->
+<article class="guide-article" id="god-supportsak">
+  <h2>Hvordan melder jeg inn en god supportsak?</h2>
+  <p>En god supportsak forklarer tydelig hva problemet er, når det startet, hvilken enhet du bruker og om du får en feilmelding.</p>
+  <p>Eksempel: "Jeg får ikke logget inn i e-post på jobb-PC-en min. Problemet startet i dag kl. 09:00, og feilmeldingen sier at passordet er utløpt."</p>
+</article>
+
+<article class="guide-article" id="sensitiv-info">
+  <h2>Hva skal jeg ikke skrive i en supportsak?</h2>
+  <p>Ikke skriv passord, BankID-informasjon, personnummer, private meldinger eller annen sensitiv informasjon i supportsaken.</p>
+  <p>Hvis IT-support trenger mer informasjon, tar de kontakt og forklarer hvordan det skal deles på en trygg måte.</p>
+</article>
+
 <article class="guide-article" id="nettleserdata">
-  <h2>1. Slette nettleserdata (cache og informasjonskapsler)</h2>
-  <p>Innsamlet nettleserdata kan føre til at nettsider ikke lastes riktig, eller at du
-     opplever innloggingsproblemer. Slett cache og informasjonskapsler slik:</p>
+  <h2>Hvordan sletter jeg nettleserhistorikk, cache og cookies?</h2>
+  <p>Trykk <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd> i nettleseren, velg historikk, cache og cookies, og trykk slett. Start nettleseren på nytt etterpå.</p>
+  <p>Dette kan hjelpe hvis en nettside laster feil, innlogging ikke fungerer, eller hvis du har brukt en delt PC og vil fjerne spor etter bruk.</p>
+</article>
 
+<article class="guide-article" id="prioritet">
+  <h2>Hva betyr prioritet i en supportsak?</h2>
+  <p>Prioritet hjelper IT-support med å vite hvor raskt saken bør behandles.</p>
   <div class="guide-steps">
-    <div class="browser-tab-group">
-      <h3>🌐 Google Chrome</h3>
-      <ol>
-        <li>Trykk <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd>
-            (Mac: <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd>).</li>
-        <li>Velg tidsperiode: <strong>«Alle tider»</strong>.</li>
-        <li>Huk av for <em>«Informasjonskapsler og andre nettstedsdata»</em>
-            og <em>«Bufrede bilder og filer»</em>.</li>
-        <li>Klikk <strong>«Slett data»</strong>.</li>
-        <li>Start nettleseren på nytt.</li>
-      </ol>
-    </div>
-
-    <div class="browser-tab-group">
-      <h3>🦊 Mozilla Firefox</h3>
-      <ol>
-        <li>Trykk <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd>.</li>
-        <li>Velg <strong>«Alt»</strong> under tidsperiode.</li>
-        <li>Huk av for <em>«Cache»</em> og <em>«Informasjonskapsler»</em>.</li>
-        <li>Klikk <strong>«OK»</strong>.</li>
-      </ol>
-    </div>
-
-    <div class="browser-tab-group">
-      <h3>🔵 Microsoft Edge</h3>
-      <ol>
-        <li>Trykk <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd>.</li>
-        <li>Velg <strong>«Hele perioden»</strong>.</li>
-        <li>Huk av for <em>«Bufrede bilder og filer»</em> og
-            <em>«Informasjonskapsler og andre nettstedsdata»</em>.</li>
-        <li>Klikk <strong>«Fjern nå»</strong>.</li>
-      </ol>
-    </div>
-  </div>
-
-  <div class="tip-box">
-    💡 <strong>Tips:</strong> Hvis problemet vedvarer etter sletting, prøv å åpne siden
-    i et <em>inkognitovindu</em> (<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd>).
+    <ul>
+      <li><strong>Lav:</strong> Noe er irriterende, men du kan fortsatt jobbe. Eksempel: en skriver er treg.</li>
+      <li><strong>Middels:</strong> Problemet påvirker arbeidet ditt, men stopper ikke alt. Eksempel: et program krasjer av og til.</li>
+      <li><strong>Høy:</strong> Du får ikke gjort jobben din, eller flere brukere er påvirket. Eksempel: du kommer ikke inn på kontoen din.</li>
+    </ul>
   </div>
 </article>
 
-<!-- Guide 2 -->
-<article class="guide-article" id="tregt-nett">
-  <h2>2. Hva gjør jeg om nettet er tregt?</h2>
-  <p>Tregt nett kan ha mange årsaker. Følg disse stegene i tur og orden:</p>
-
-  <div class="guide-steps">
-    <ol>
-      <li>
-        <strong>Sjekk om problemet gjelder bare deg:</strong> Spør en kollega om de
-        opplever det samme. Sjekk også <a href="{{ url_for('driftsstatus') }}">Driftsstatus</a>.
-      </li>
-      <li>
-        <strong>Start nettverksenheter på nytt:</strong> Slå av og på PC-ens WiFi-adapter
-        (klikk WiFi-ikonet i systemstatusfeltet). Hvis du er tilkoblet med kabel, koble
-        kabelen ut og inn igjen.
-      </li>
-      <li>
-        <strong>Tøm DNS-buffer:</strong> Åpne Ledetekst (søk etter «cmd» i Start-menyen)
-        og skriv: <code>ipconfig /flushdns</code>. Trykk Enter.
-      </li>
-      <li>
-        <strong>Test hastigheten:</strong> Gå til
-        <strong>fast.com</strong> eller <strong>speedtest.net</strong> i nettleseren.
-        Forventet hastighet på kontoret er minst 50 Mbit/s ned.
-      </li>
-      <li>
-        <strong>Fortsatt tregt?</strong> Kontakt IT-avdelingen via
-        <a href="{{ url_for('ticket') }}">Support-ticket</a> og oppgi
-        hastighetsresultatet.
-      </li>
-    </ol>
-  </div>
-</article>
-
-<!-- Guide 3 -->
-<article class="guide-article" id="passord">
-  <h2>3. Jeg har glemt passordet mitt</h2>
-
-  <div class="guide-steps">
-    <ol>
-      <li>Gå til innloggingssiden og klikk <strong>«Glemt passord?»</strong>.</li>
-      <li>Skriv inn jobb-e-postadressen din og klikk <strong>«Send tilbakestillings-e-post»</strong>.</li>
-      <li>Sjekk innboksen (og søppelpostmappen) for en e-post fra IT-avdelingen.</li>
-      <li>Klikk lenken i e-posten og velg et nytt passord. Kravene er:
-        <ul>
-          <li>Minst <strong>12 tegn</strong></li>
-          <li>Minst én <strong>stor bokstav</strong></li>
-          <li>Minst ett <strong>tall</strong></li>
-          <li>Minst ett <strong>spesialtegn</strong> (f.eks. ! @ # $)</li>
-        </ul>
-      </li>
-    </ol>
-  </div>
-
-  <div class="warn-box">
-    ⚠️ <strong>Merk:</strong> Har du ikke tilgang til e-posten din, eller er kontoen låst,
-    kontakt IT direkte på <strong>555 12 345</strong> for personlig hjelp.
-  </div>
-</article>
-
-<!-- Guide 4 -->
-<article class="guide-article" id="skriver">
-  <h2>4. Skriveren fungerer ikke</h2>
-
-  <div class="guide-steps">
-    <ol>
-      <li>Sjekk at skriveren er slått på og at grønt lys lyser.</li>
-      <li>Sjekk at det er papir i skuffen og at det ikke er papirstopp.</li>
-      <li>
-        <strong>Fjern utskriftskøen:</strong>
-        <ol>
-          <li>Åpne <em>Innstillinger → Bluetooth og enheter → Skrivere og skannere</em>.</li>
-          <li>Klikk på skriveren og velg <strong>«Åpne utskriftskø»</strong>.</li>
-          <li>Slett alle ventende jobber.</li>
-        </ol>
-      </li>
-      <li>
-        <strong>Installer skriverdriveren på nytt</strong> (kun ved behov):
-        Åpne Innstillinger → Skrivere og skannere, fjern skriveren og legg den til igjen.
-      </li>
-    </ol>
-  </div>
-</article>
-
-<!-- Guide 5 -->
-<article class="guide-article" id="vpn">
-  <h2>5. Koble til VPN hjemmefra</h2>
-  <p>VPN gir deg sikker tilgang til bedriftens nettverk når du jobber utenfor kontoret.</p>
-
-  <div class="guide-steps">
-    <ol>
-      <li>Last ned og installer <strong>GlobalProtect</strong> (lenke sendes av IT-avdelingen).</li>
-      <li>Åpne GlobalProtect-ikonet i systemstatusfeltet.</li>
-      <li>Skriv inn VPN-gateway-adressen: <code>vpn.bedriften.no</code></li>
-      <li>Logg inn med jobb-brukernavn og passord.</li>
-      <li>Når ikonet er grønt, er du tilkoblet bedriftens nettverk.</li>
-    </ol>
-  </div>
-
-  <div class="tip-box">
-    💡 <strong>Tips:</strong> Husk å koble fra VPN når du ikke lenger trenger det,
-    for bedre hastighet på privat nett.
-  </div>
+<article class="guide-article" id="kategori">
+  <h2>kategori</h2>
+  <p> </p>
 </article>
 
 <div class="guide-footer">

@@ -17,7 +17,7 @@ Bygget med Python / Flask, SQLite og Gunicorn. Appen kan kjøres lokalt for utvi
 | Metrics | `/metrics` | Enkel intern statistikk for admin |
 
 ## Kom i gang (lokal utvikling)
-
+## NB!!!! terminal issue når ssh "export TERM=xterm"
 ```bash
 # 1. Klon repoet
 git clone https://github.com/letmebeman/mappelevering.git
