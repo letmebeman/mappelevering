@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  ikt-portal:
+    build: .
+    container_name: ikt_portal
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_PATH: /data/ikt_portal.db
+    volumes:
+      - ikt_data:/data
+    restart: unless-stopped
+    networks:
+      - appnet
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./promtail/config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+volumes:
+  ikt_data:
+  grafana_data:
+  loki_data:
+
+networks:
+  appnet:
+  monitoring:
