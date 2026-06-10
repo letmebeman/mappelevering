@@ -481,17 +481,14 @@ def update_ticket_notes(ticket_id):
     app.logger.info("Ticket notes updated: id=%s", ticket_id)
     return redirect(url_for("tickets", status=request.args.get("status", "all")))
 
-
 @app.route("/tickets/delete/<int:ticket_id>", methods=["POST"])
 @admin_required
 def delete_ticket(ticket_id):
-    # Admin-only hard delete for support tickets.
     db = get_db()
-    db.execute("DELETE FROM tickets WHERE id = ?", (ticket_id,))
+    db.execute("DELETE FROM TICKETS WHERE id = ?", (ticket_id,))
     db.commit()
-    app.logger.info("Ticket deleted: id=%s", ticket_id)
-    return redirect(url_for("tickets"))
-
+    app.logger.info("Tickets deleted by admin id= %s", ticket_id)
+    return redirect(url_for("tickets", status=request.args.get("status", "all")))
 
 @app.route("/health")
 def health():

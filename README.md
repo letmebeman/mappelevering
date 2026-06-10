@@ -155,7 +155,7 @@ docker-compose.yml
 
 Klikk `Create`.
 
-4. Etter at stacken er opprettet: gå tilbake til `Stacks`, klikk på stacken, åpne `Env variables`, velg `Advanced mode`, og lim inn:
+4. Etter at stacken er opprettet: gå tilbake til `Stacks`, klikk på stacken, åpne `Env variables`, sett variabelen for hånd ved å skrive inn `SECRET KEY OG ADMIN PASSWORD` i feltene til venstre og din `secret/passord` i høyre feltet velg `Advanced mode` og lim inn:
 
 ```env
 SECRET_KEY=some-long-random-secret
@@ -235,7 +235,8 @@ http://prometheus:9090
 5. Sett den gjerne som default datasource.
 6. Klikk `Save & test`.
 
-Hvis Grafana Metrics Drilldown sier at ingen Prometheus datasource finnes, sjekk at det ikke ligger mange gamle Prometheus-datasources som `prometheus-1`, `prometheus-2` osv. Behold kun én Prometheus datasource med URL `http://prometheus:9090`.
+Hvis Grafana Metrics Drilldown sier at ingen Prometheus datasource finnes, sjekk at det ikke ligger mange gamle Prometheus-datasources som `prometheus-1`, `prometheus-2` osv. Behold kun én Prometheus datasource med URL `http://prometheus:9090`. Etter det hvis du fortsatt mangle en datasource, logg ut av grafana i nettleseren og logg tilbake inn ved å bruke ditt nye passord.
+
 
 Offisiell dokumentasjon:
 
@@ -244,11 +245,7 @@ Offisiell dokumentasjon:
 - Alloy `loki.source.file`: https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file/
 - Alloy `loki.write`: https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write/
 
-Hvis URL-er eller menyer endrer seg, bruk denne plassen til egne notater:
 
-```text
-TODO: Legg inn skolens/serverens egne Grafana-instruksjoner her.
-```
 
 ### Se logger i Grafana
 
@@ -288,6 +285,10 @@ Se container-logger:
 docker logs -f <container-id>
 ```
 
+
+```bash
+eller ved hjelp av portaniner controll pannellen start appen.
+```
 Vanlige feil og løsninger:
 
 | Feil | Løsning |
