@@ -76,7 +76,7 @@ docker run --rm -p 5000:5000 --env-file .env -e DATABASE_PATH=/data/ikt_portal.d
 
 ## Docker Compose / Portainer stack
 
-`docker-compose.yml` starter fire tjenester:
+`docker-compose.yml` starter appen og observability-tjenestene:
 
 | Tjeneste | Port | Beskrivelse |
 |----------|------|-------------|
@@ -84,6 +84,8 @@ docker run --rm -p 5000:5000 --env-file .env -e DATABASE_PATH=/data/ikt_portal.d
 | `grafana` | `3000` | Dashboard og loggvisning |
 | `loki` | intern | Lagrer logger |
 | `alloy` | intern `12345` | Leser Docker-logger og sender dem til Loki |
+| `prometheus` | `9090` | Samler metrics fra Prometheus selv og node-exporter |
+| `node-exporter` | `9100` | Eksponerer VM/server-metrics |
 
 Før stacken deployes i Portainer må disse miljøvariablene settes under stackens environment variables:
 
@@ -96,20 +98,31 @@ Alternativt kan `ADMIN_PASSWORD_HASH` brukes i stedet for `ADMIN_PASSWORD`, men 
 
 Viktig for Portainer:
 
-- Hvis stacken deployes fra Git, må repoet inneholde både `docker-compose.yml` og `alloy/config.alloy`.
-- Hvis compose-filen limes direkte inn i Portainer, finnes ikke `./alloy/config.alloy` automatisk på serveren. Da må Alloy-konfigurasjonen opprettes på serveren og mountes med absolutt sti.
-- `build: .` krever at Portainer har tilgang til repoet som build context. Hvis du deployer uten Git-build, bygg og push imaget først og bruk `image:` i stedet.
+- Stacken skal deployes fra Git-repoet, ikke ved å lime inn compose-filen alene.
+- Repository URL: `https://github.com/letmebeman/mappelevering.git`
+- Branch/reference: `refs/heads/main`
+- Compose path: `docker-compose.yml`
+- `build:` krever at Portainer har tilgang til repoet som build context. Hvis du deployer uten Git-build, bygg og push imaget først og bruk `image:` i stedet.
 
-Alloy-konfigurasjonen ligger i `alloy/config.alloy`. Compose-filen mounter hele mappen:
-
-```yaml
-- ./alloy:/etc/alloy:ro
-```
-
-Da leser Alloy konfigurasjonen fra:
+Prometheus og Alloy bruker egne små Docker-images som bygges fra repoet:
 
 ```text
-/etc/alloy/config.alloy
+prometheus/Dockerfile  -> kopierer prometheus/prometheus.yml inn i imaget
+alloy/Dockerfile       -> kopierer alloy/config.alloy inn i imaget
+```
+
+Dette er gjort fordi Portainer i dette miljøet ikke lot oss aktivere `Enable relative path volumes`. Relative bind mounts som `./prometheus:/etc/prometheus:ro` og `./alloy:/etc/alloy:ro` førte til tomme mapper på VM-en:
+
+```text
+/data/compose/12/prometheus
+/data/compose/12/alloy
+```
+
+Da restartet Prometheus og Alloy med disse feilene:
+
+```text
+Prometheus: open /etc/prometheus/prometheus.yml: no such file or directory
+Alloy: stat /etc/alloy/config.alloy: no such file or directory
 ```
 
 ### Steg for steg i Portainer
@@ -194,6 +207,36 @@ http://loki:3100
 
 6. Klikk `Save & test`.
 
+### Legg til Prometheus som datasource
+
+Prometheus kjører på port `9090`. Fra nettleseren bruker du VM-IP:
+
+```text
+http://x.x.x.x:9090
+```
+
+Inne i Docker-nettverket skal Grafana bruke service-navnet:
+
+```text
+http://prometheus:9090
+```
+
+Legg derfor til Prometheus datasource i Grafana slik:
+
+1. Gå til `Connections` / `Data sources`.
+2. Klikk `Add new data source`.
+3. Velg `Prometheus`.
+4. Sett URL til:
+
+```text
+http://prometheus:9090
+```
+
+5. Sett den gjerne som default datasource.
+6. Klikk `Save & test`.
+
+Hvis Grafana Metrics Drilldown sier at ingen Prometheus datasource finnes, sjekk at det ikke ligger mange gamle Prometheus-datasources som `prometheus-1`, `prometheus-2` osv. Behold kun én Prometheus datasource med URL `http://prometheus:9090`.
+
 Offisiell dokumentasjon:
 
 - Grafana Loki datasource: https://grafana.com/docs/grafana/latest/datasources/loki/
@@ -252,7 +295,9 @@ Vanlige feil og løsninger:
 | Port `5000` er opptatt | Kjør `PORT=5001 make docker-run` |
 | Admin-login virker ikke | Sjekk at `SECRET_KEY` og `ADMIN_PASSWORD` eller `ADMIN_PASSWORD_HASH` er satt i miljøvariabler |
 | `Admin password is not configured` | Legg til `ADMIN_PASSWORD` eller `ADMIN_PASSWORD_HASH` i Portainer stack environment variables og redeploy |
-| Alloy feiler med `not a directory` ved mount | Sjekk at `alloy/config.alloy` finnes som fil i Git-repoet eller på serveren, ikke som mappe |
+| Prometheus restartes hele tiden | Sjekk at `prometheus/Dockerfile` kopierer `prometheus.yml`, og at Portainer har bygget siste Git-commit |
+| Alloy restartes hele tiden | Sjekk at `alloy/Dockerfile` kopierer `config.alloy`, og at Portainer har bygget siste Git-commit |
+| Grafana Metrics Drilldown finner ikke Prometheus | Slett dupliserte Prometheus-datasources og behold én med URL `http://prometheus:9090` |
 | Tickets forsvinner etter rebuild | Sjekk at containeren startes med `-v ikt_portalen_data:/data` |
 | `/health` viser databasefeil | Sjekk at `DATABASE_PATH=/data/ikt_portal.db` og at volumet er skrivbart |
 
@@ -358,11 +403,15 @@ Dette er en god demo fordi du kan bruke både logger, statuskommandoer og helse-
 ```text
 mappelevering/
 ├── alloy/
+│   ├── Dockerfile               # Bygger Alloy-image med config.alloy inkludert
 │   └── config.alloy              # Grafana Alloy-konfigurasjon for Docker-logger
 ├── app.py                       # Flask-applikasjon og ruter
-├── docker-compose.yml            # Stack med app, Grafana, Loki og Alloy
+├── docker-compose.yml            # Stack med app, Grafana, Loki, Alloy, Prometheus og node-exporter
 ├── Dockerfile                   # Docker-image for Gunicorn
 ├── Makefile                     # Lokale kommandoer for run, hashing og Docker
+├── prometheus/
+│   ├── Dockerfile               # Bygger Prometheus-image med prometheus.yml inkludert
+│   └── prometheus.yml           # Prometheus scrape-konfigurasjon
 ├── requirements.txt             # Python-avhengigheter
 ├── ikt_portal.db                # SQLite-database (opprettes automatisk)
 ├── templates/
